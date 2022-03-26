@@ -4,13 +4,15 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/QuaternionStamped.h>
+#include "std_msgs/String.h"
 #include <librealsense2/rs.hpp>
 #include "cv-helpers.hpp"
 #include "ros/ros.h"
+#include <ros/console.h>
 #include <iostream>
 #include <sstream>
 
-auto detector = NanoDet("/home/px4vision/catkin_ws/src/object_tracking/src/nanodet.xml", "MYRIAD", 32);
+auto detector = NanoDet("/home/px4vision/catkin/src/object_tracking/src/nanodet.xml", "MYRIAD", 32);
 
 
 struct object_rect {
@@ -121,7 +123,9 @@ int intelrealsense_inference(ros::Publisher pub)
     int height = detector.input_size[0];
     int width = detector.input_size[1];
 
-    // Start streaming from Intel RealSense Camera
+	// Start streaming from Intel RealSense Camera
+	ROS_INFO("before camera setup\n");
+
     pipeline pipe;
     auto config = pipe.start();
     auto profile = config.get_stream(RS2_STREAM_COLOR)
@@ -143,14 +147,17 @@ int intelrealsense_inference(ros::Publisher pub)
     Rect crop(Point((profile.width() - cropSize.width) / 2,
                     (profile.height() - cropSize.height) / 2),
               cropSize);
-    ros::Rate loop_rate(10);
     std::vector<float> old_bboxes;
-    old_bboxes.push_back(0.4);
-    old_bboxes.push_back(0.4);
-    old_bboxes.push_back(0.6);
-    old_bboxes.push_back(0.6);
+    old_bboxes.push_back(-1);
+    old_bboxes.push_back(-1);
+    old_bboxes.push_back(-1);
+    old_bboxes.push_back(-1);	
 
-    while (1)
+	int count = 0;
+
+    // Start streaming from Intel RealSense Camera
+	ROS_INFO("object_tracking: starting camera stream\n");
+    while (ros::ok())
     {
         // Wait for the next set of frames
         auto data = pipe.wait_for_frames();
@@ -167,6 +174,13 @@ int intelrealsense_inference(ros::Publisher pub)
         std::vector<float> bboxes = get_bboxes(color_mat, results, effect_roi);
         if(bboxes.size() == 0) {
             bboxes = old_bboxes;
+			count++;
+			if(count > 30) {
+				bboxes[0] = -1;
+				bboxes[1] = -1;
+				bboxes[2] = -1;
+				bboxes[3] = -1;
+			}
         }
         else {
             bboxes[0] /= color_mat.cols;
@@ -174,7 +188,10 @@ int intelrealsense_inference(ros::Publisher pub)
             bboxes[2] /= color_mat.cols;
             bboxes[3] /= color_mat.rows;
             old_bboxes = bboxes;
+			count = 0;
         }
+
+		ROS_INFO("%f, %f, %f, %f, %d, %d\n", bboxes[0], bboxes[1], bboxes[2], bboxes[3], color_mat.cols, color_mat.rows);
         geometry_msgs::Quaternion msg;
         msg.x = bboxes[0];
         msg.y = bboxes[1];
@@ -183,7 +200,7 @@ int intelrealsense_inference(ros::Publisher pub)
         geometry_msgs::QuaternionStamped stamped_msg;
         stamped_msg.header = std_msgs::Header();
         stamped_msg.quaternion = msg;
-        pub.publish(msg);
+        pub.publish(stamped_msg);
         ros::spinOnce();
     }
     return 0;
@@ -191,8 +208,10 @@ int intelrealsense_inference(ros::Publisher pub)
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "object_tracking");
+	ROS_INFO("init the ros node");
     ros::NodeHandle n;
-    ros::Publisher pub = n.advertise<geometry_msgs::QuaternionStamped>("rover/bounding_box",500);
+    ros::Publisher pub = n.advertise<geometry_msgs::QuaternionStamped>("rover/bounding_box",5);
     intelrealsense_inference(pub);
-    return 0;
+	
+	return 0;
 }
