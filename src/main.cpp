@@ -6,6 +6,7 @@
 #include <geometry_msgs/QuaternionStamped.h>
 #include "std_msgs/String.h"
 #include <librealsense2/rs.hpp>
+#include <librealsense2/rsutil.h>
 #include "cv-helpers.hpp"
 #include "ros/ros.h"
 #include <ros/console.h>
@@ -110,7 +111,7 @@ std::vector<float> get_bboxes(const cv::Mat& bgr, const std::vector<BoxInfo>& bb
     return boundingboxes;
 }
 
-int intelrealsense_inference(ros::Publisher pub)
+int intelrealsense_inference(ros::Publisher pub_bbox, ros::Publisher pub_rel_pos)
 {
     using namespace cv;
     using namespace rs2;
@@ -147,6 +148,9 @@ int intelrealsense_inference(ros::Publisher pub)
     Rect crop(Point((profile.width() - cropSize.width) / 2,
                     (profile.height() - cropSize.height) / 2),
               cropSize);
+	
+	auto const intrinsics = pipe.get_active_profile().get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>().get_intrinsics();
+
     std::vector<float> old_bboxes;
     old_bboxes.push_back(-1);
     old_bboxes.push_back(-1);
@@ -154,6 +158,10 @@ int intelrealsense_inference(ros::Publisher pub)
     old_bboxes.push_back(-1);	
 
 	int count = 0;
+	float old_point[3];
+	old_point[0] = -1;
+	old_point[1] = -1;
+	old_point[2] = -1;
 
     // Start streaming from Intel RealSense Camera
 	ROS_INFO("object_tracking: starting camera stream\n");
@@ -161,25 +169,43 @@ int intelrealsense_inference(ros::Publisher pub)
     {
         // Wait for the next set of frames
         auto data = pipe.wait_for_frames();
+		data = align_to.process(data);
 
         auto color_frame = data.get_color_frame();
+        auto depth_frame = data.get_depth_frame();
 
+		static int last_frame_number = 0;
+		if (color_frame.get_frame_number() == last_frame_number) continue;
+        last_frame_number = static_cast<int>(color_frame.get_frame_number());
+		
         // Convert RealSense frame to OpenCV matrix:
         auto color_mat = frame_to_mat(color_frame);
+		auto depth_mat = depth_frame_to_mat(depth_frame);
 
         cv::Mat resized_img;
         object_rect effect_roi;
         resize_uniform(color_mat, resized_img, cv::Size(width, height), effect_roi);
         auto results = detector.detect(resized_img, 0.4, 0.5);
         std::vector<float> bboxes = get_bboxes(color_mat, results, effect_roi);
+
+		float point[3];
+
         if(bboxes.size() == 0) {
             bboxes = old_bboxes;
+			point[0] = old_point[0];
+			point[1] = old_point[1];
+			point[2] = old_point[2];
+
 			count++;
 			if(count > 30) {
 				bboxes[0] = -1;
 				bboxes[1] = -1;
 				bboxes[2] = -1;
 				bboxes[3] = -1;
+				
+				point[0] = -1;
+				point[1] = -1;
+				point[2] = -1;
 			}
         }
         else {
@@ -189,6 +215,17 @@ int intelrealsense_inference(ros::Publisher pub)
             bboxes[3] /= color_mat.rows;
             old_bboxes = bboxes;
 			count = 0;
+
+			Rect object((int)(bboxes[0]), (int)(bboxes[3]),
+						(int)(bboxes[2]-bboxes[0]),
+						(int)(bboxes[3]-bboxes[1]));
+			object = object & Rect(0, 0, depth_mat.cols, depth_mat.rows);
+			float pixel[2];
+			pixel[0] = bboxes[0] + (bboxes[2]-bboxes[0])/2;
+			pixel[0] = bboxes[1] + (bboxes[3]-bboxes[1])/2;
+			Scalar m = mean(depth_mat(object));
+			rs2_deproject_pixel_to_point(point, &intrinsics, pixel, (float) m[0]);
+
         }
 
 		ROS_INFO("%f, %f, %f, %f, %d, %d\n", bboxes[0], bboxes[1], bboxes[2], bboxes[3], color_mat.cols, color_mat.rows);
@@ -200,7 +237,19 @@ int intelrealsense_inference(ros::Publisher pub)
         geometry_msgs::QuaternionStamped stamped_msg;
         stamped_msg.header = std_msgs::Header();
         stamped_msg.quaternion = msg;
-        pub.publish(stamped_msg);
+        pub_bbox.publish(stamped_msg);
+
+		geometry_msgs::Quaternion msg_pos;
+        msg_pos.x = point[0];
+        msg_pos.y = point[1];
+        msg_pos.z = point[2];
+        geometry_msgs::QuaternionStamped stamped_msg_pos;
+        stamped_msg_pos.header = std_msgs::Header();
+        stamped_msg_pos.quaternion = msg_pos;
+        pub_rel_pos.publish(stamped_msg_pos);
+
+
+
         ros::spinOnce();
     }
     return 0;
@@ -210,8 +259,9 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "object_tracking");
 	ROS_INFO("init the ros node");
     ros::NodeHandle n;
-    ros::Publisher pub = n.advertise<geometry_msgs::QuaternionStamped>("rover/bounding_box",5);
-    intelrealsense_inference(pub);
+    ros::Publisher pub_bbox = n.advertise<geometry_msgs::QuaternionStamped>("rover/bounding_box",5);
+    ros::Publisher pub_rel_pos = n.advertise<geometry_msgs::QuaternionStamped>("rover/rel_pos",5);
+    intelrealsense_inference(pub_bbox, pub_rel_pos);
 	
 	return 0;
 }
