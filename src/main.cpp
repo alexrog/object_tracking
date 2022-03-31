@@ -180,7 +180,7 @@ int intelrealsense_inference(ros::Publisher pub_bbox, ros::Publisher pub_rel_pos
 		
         // Convert RealSense frame to OpenCV matrix:
         auto color_mat = frame_to_mat(color_frame);
-		auto depth_mat = depth_frame_to_mat(depth_frame);
+		auto depth_mat = depth_frame_to_meters(depth_frame);
 
         cv::Mat resized_img;
         object_rect effect_roi;
@@ -189,6 +189,7 @@ int intelrealsense_inference(ros::Publisher pub_bbox, ros::Publisher pub_rel_pos
         std::vector<float> bboxes = get_bboxes(color_mat, results, effect_roi);
 
 		float point[3];
+		float mean_depth = 0;
 
         if(bboxes.size() == 0) {
             bboxes = old_bboxes;
@@ -209,26 +210,30 @@ int intelrealsense_inference(ros::Publisher pub_bbox, ros::Publisher pub_rel_pos
 			}
         }
         else {
-            bboxes[0] /= color_mat.cols;
-            bboxes[1] /= color_mat.rows;
-            bboxes[2] /= color_mat.cols;
-            bboxes[3] /= color_mat.rows;
-            old_bboxes = bboxes;
-			count = 0;
-
 			Rect object((int)(bboxes[0]), (int)(bboxes[3]),
 						(int)(bboxes[2]-bboxes[0]),
 						(int)(bboxes[3]-bboxes[1]));
 			object = object & Rect(0, 0, depth_mat.cols, depth_mat.rows);
 			float pixel[2];
 			pixel[0] = bboxes[0] + (bboxes[2]-bboxes[0])/2;
-			pixel[0] = bboxes[1] + (bboxes[3]-bboxes[1])/2;
+			pixel[1] = bboxes[1] + (bboxes[3]-bboxes[1])/2;
 			Scalar m = mean(depth_mat(object));
+			mean_depth = (float) m[0];
 			rs2_deproject_pixel_to_point(point, &intrinsics, pixel, (float) m[0]);
+			old_point[0] = point[0];
+			old_point[1] = point[1];
+			old_point[2] = point[2];
 
+            bboxes[0] /= color_mat.cols;
+            bboxes[1] /= color_mat.rows;
+            bboxes[2] /= color_mat.cols;
+            bboxes[3] /= color_mat.rows;
+            old_bboxes = bboxes;
+			count = 0;
         }
 
-		ROS_INFO("%f, %f, %f, %f, %d, %d\n", bboxes[0], bboxes[1], bboxes[2], bboxes[3], color_mat.cols, color_mat.rows);
+		//ROS_INFO("%f, %f, %f, %f, %d, %d\n", bboxes[0], bboxes[1], bboxes[2], bboxes[3], color_mat.cols, color_mat.rows);
+		ROS_INFO("%f, %f, %f, depth: %f", point[0], point[1], point[2], mean_depth);
         geometry_msgs::Quaternion msg;
         msg.x = bboxes[0];
         msg.y = bboxes[1];
