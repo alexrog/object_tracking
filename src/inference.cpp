@@ -1,6 +1,6 @@
 #include "inference.h"
 
-Inference::Inference() : it(n) : sub_cam_info(n, "drone/camera/color/camera_info", &Inference::camInfoCallback, this)
+Inference::Inference() : it(n) : sub_cam_info(n, "drone/camera/color/camera_info",1, &Inference::camInfoCallback, this)
 {
     /*pipeline pipe;
     auto config = pipe.start();
