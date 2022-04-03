@@ -272,6 +272,6 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "object_tracking");
 	ROS_INFO("init the ros node");
     Inference inference;
-	
+    ros::spin();
 	return 0;
 }
