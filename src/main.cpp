@@ -234,7 +234,7 @@ int intelrealsense_inference(ros::Publisher pub_bbox, ros::Publisher pub_rel_pos
 			count = 0;
         }
 
-		i//ROS_INFO("%f, %f, %f, %f, %d, %d\n", bboxes[0], bboxes[1], bboxes[2], bboxes[3], color_mat.cols, color_mat.rows);
+		//ROS_INFO("%f, %f, %f, %f, %d, %d\n", bboxes[0], bboxes[1], bboxes[2], bboxes[3], color_mat.cols, color_mat.rows);
 		ROS_INFO("%f, %f, %f, depth: %f", point[0], point[1], point[2], mean_depth);
         geometry_msgs::Quaternion msg;
         msg.x = bboxes[0];
