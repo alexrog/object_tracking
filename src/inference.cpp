@@ -30,9 +30,9 @@ Inference::Inference() : it(n)
     height = detector.input_size[0];
     width = detector.input_size[1];
 
-    sub_rgb = it.subscribe("camera/color/image_raw", 1, &Inference::imageCallback, this);
+    sub_rgb = it.subscribe("/drone/camera/color/image_raw", 1, &Inference::imageCallback, this);
     //sub_depth = it.subscribe("camera/depth/image_raw", 1, &Inference::imageCallback, this);
-    pub_bbox = n.advertise<geometry_msgs::QuaternionStamped>("rover/bounding_box", 5);
+    pub_bbox = n.advertise<geometry_msgs::QuaternionStamped>("/drone/rover/bounding_box", 5);
     //pub_rel_pos = n.advertise<geometry_msgs::PointStamped>("rover/rel_pos", 5);
     old_bboxes.push_back(-1);
     old_bboxes.push_back(-1);
@@ -136,7 +136,6 @@ void Inference::imageCallback(const sensor_msgs::ImageConstPtr &img_msg)
     stamped_msg_pos.point = msg_pos;
     pub_rel_pos.publish(stamped_msg_pos);*/
 
-    ros::spinOnce();   
 }
 
 int Inference::resize_uniform(cv::Mat &src, cv::Mat &dst, cv::Size dst_size, object_rect &effect_area)
