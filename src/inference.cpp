@@ -35,6 +35,14 @@ Inference::Inference()
     //sub_depth = it.subscribe("camera/depth/image_raw", 1, &Inference::imageCallback, this);
     pub_bbox = n.advertise<geometry_msgs::QuaternionStamped>("rover/bounding_box", 5);
     //pub_rel_pos = n.advertise<geometry_msgs::PointStamped>("rover/rel_pos", 5);
+    old_bboxes.push_back(-1);
+    old_bboxes.push_back(-1);
+    old_bboxes.push_back(-1);
+    old_bboxes.push_back(-1);
+
+    old_point[0] = -1;
+	old_point[1] = -1;
+	old_point[2] = -1;
 }
 
 void Inference::imageCallback(const sensor_msgs::ImageConstPtr &msg)

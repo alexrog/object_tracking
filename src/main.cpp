@@ -19,7 +19,7 @@
 //auto detector = NanoDet("/home/px4vision/catkin/src/auav_2022_sample/object_tracking/src/nanodet.xml", "MYRIAD", 32);
 
 
-struct object_rect {
+/*struct object_rect {
     int x;
     int y;
     int width;
@@ -260,7 +260,7 @@ int intelrealsense_inference(ros::Publisher pub_bbox, ros::Publisher pub_rel_pos
         ros::spinOnce();
     }
     return 0;
-}
+}*/
 
 int main(int argc, char **argv) {
     /*ros::init(argc, argv, "object_tracking");

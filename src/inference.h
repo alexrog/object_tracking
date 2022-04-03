@@ -35,7 +35,7 @@ class Inference
     public:
         Inference();
         NanoDet detector; 
-        ros:nodeHandle n;
+        ros::nodeHandle n;
         image_transport::ImageTransport it(n);
         image_transport::Subscriber sub_rgb;
         //image_transport::Subscriber sub_depth;
@@ -49,12 +49,14 @@ class Inference
         const float meanVal = 127.5;
         int height;
         int width;
+        int count = 0;
+        std::vector<float> old_bboxes;
+        float old_point[3];
 
         void imageCallback(const sensor_msgs::ImageConstPtr& msg);
     private:
         int resize_uniform(cv::Mat &src, cv::Mat &dst, cv::Size dst_size, object_rect &effect_area);
-        std::vector<float> get_bboxes(const cv::Mat &bgr, const std::vector<BoxInfo> &bboxes, object_rect effect_roi)
-
+        std::vector<float> get_bboxes(const cv::Mat &bgr, const std::vector<BoxInfo> &bboxes, object_rect effect_roi);
 }
 
 #endif
