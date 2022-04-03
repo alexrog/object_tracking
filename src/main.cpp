@@ -14,8 +14,9 @@
 #include <ros/console.h>
 #include <iostream>
 #include <sstream>
+#include <inference.h>
 
-auto detector = NanoDet("/home/px4vision/catkin/src/auav_2022_sample/object_tracking/src/nanodet.xml", "MYRIAD", 32);
+//auto detector = NanoDet("/home/px4vision/catkin/src/auav_2022_sample/object_tracking/src/nanodet.xml", "MYRIAD", 32);
 
 
 struct object_rect {
@@ -262,12 +263,13 @@ int intelrealsense_inference(ros::Publisher pub_bbox, ros::Publisher pub_rel_pos
 }
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "object_tracking");
+    /*ros::init(argc, argv, "object_tracking");
 	ROS_INFO("init the ros node");
     ros::NodeHandle n;
     ros::Publisher pub_bbox = n.advertise<geometry_msgs::QuaternionStamped>("rover/bounding_box",5);
     ros::Publisher pub_rel_pos = n.advertise<geometry_msgs::PointStamped>("rover/rel_pos",5);
-    intelrealsense_inference(pub_bbox, pub_rel_pos);
+    intelrealsense_inference(pub_bbox, pub_rel_pos);*/
+    Inference::Inference inference;
 	
 	return 0;
 }
