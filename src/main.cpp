@@ -269,6 +269,8 @@ int main(int argc, char **argv) {
     ros::Publisher pub_bbox = n.advertise<geometry_msgs::QuaternionStamped>("rover/bounding_box",5);
     ros::Publisher pub_rel_pos = n.advertise<geometry_msgs::PointStamped>("rover/rel_pos",5);
     intelrealsense_inference(pub_bbox, pub_rel_pos);*/
+    ros::init(argc, argv, "object_tracking");
+	ROS_INFO("init the ros node");
     Inference inference;
 	
 	return 0;
