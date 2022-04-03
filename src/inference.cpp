@@ -120,8 +120,8 @@ void Inference::imageCallback(const sensor_msgs::ImageConstPtr &img_msg)
     geometry_msgs::Quaternion msg;
     msg.x = bboxes[0]; // x of top left
     msg.y = bboxes[1]; // y of top left
-    msg.z = color_mat.rows; // height
-    msg.w = color_mat.cols; // width
+    msg.z = bboxes[2]-bboxes[0]; // width
+    msg.w = bboxes[3]-bboxes[1]; // width
     geometry_msgs::QuaternionStamped stamped_msg;
     stamped_msg.header = std_msgs::Header();
     stamped_msg.quaternion = msg;
