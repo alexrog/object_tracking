@@ -14,7 +14,7 @@
 #include <ros/console.h>
 #include <iostream>
 #include <sstream>
-#include <inference.h>
+#include "inference.h"
 
 //auto detector = NanoDet("/home/px4vision/catkin/src/auav_2022_sample/object_tracking/src/nanodet.xml", "MYRIAD", 32);
 
@@ -269,7 +269,7 @@ int main(int argc, char **argv) {
     ros::Publisher pub_bbox = n.advertise<geometry_msgs::QuaternionStamped>("rover/bounding_box",5);
     ros::Publisher pub_rel_pos = n.advertise<geometry_msgs::PointStamped>("rover/rel_pos",5);
     intelrealsense_inference(pub_bbox, pub_rel_pos);*/
-    Inference::Inference inference;
+    Inference inference;
 	
 	return 0;
 }
