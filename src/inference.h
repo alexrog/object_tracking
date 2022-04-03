@@ -35,7 +35,7 @@ class Inference
     public:
         Inference();
         NanoDet detector; 
-        ros::nodeHandle n;
+        ros::NodeHandle n;
         image_transport::ImageTransport it(n);
         image_transport::Subscriber sub_rgb;
         //image_transport::Subscriber sub_depth;

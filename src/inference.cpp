@@ -140,7 +140,7 @@ void Inference::imageCallback(const sensor_msgs::ImageConstPtr &msg)
     ros::spinOnce();   
 }
 
-Inference::int resize_uniform(cv::Mat &src, cv::Mat &dst, cv::Size dst_size, object_rect &effect_area)
+int Inference::resize_uniform(cv::Mat &src, cv::Mat &dst, cv::Size dst_size, object_rect &effect_area)
 {
     int w = src.cols;
     int h = src.rows;
