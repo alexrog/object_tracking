@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   sensor_msgs
+  message_filters
 )
 
 find_package(OpenCV REQUIRED)

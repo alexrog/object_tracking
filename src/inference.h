@@ -8,8 +8,10 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/QuaternionStamped.h>
+#include <sensor_msgs/CameraInfo.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PointStamped.h>
+#include <message_filters/subscriber.h>
 #include "std_msgs/String.h"
 #include <librealsense2/rs.hpp>
 #include <librealsense2/rsutil.h>
@@ -38,6 +40,7 @@ class Inference
         ros::NodeHandle n;
         image_transport::ImageTransport it;
         image_transport::Subscriber sub_rgb;
+        message_filters::Subscriber<CameraInfo> sub_cam_info;
         //image_transport::Subscriber sub_depth;
         ros::Publisher pub_bbox;
         ros::Publisher pub_rel_pos;
@@ -52,8 +55,10 @@ class Inference
         int count = 0;
         std::vector<float> old_bboxes;
         float old_point[3];
+        sensor_msgs::CameraInfoConstPtr& camera_info;
 
         void imageCallback(const sensor_msgs::ImageConstPtr& img_msg);
+        void camInfoCallback(const CameraInfoConstPtr& cam_info);
     private:
         int resize_uniform(cv::Mat &src, cv::Mat &dst, cv::Size dst_size, object_rect &effect_area);
         std::vector<float> get_bboxes(const cv::Mat &bgr, const std::vector<BoxInfo> &bboxes, object_rect effect_roi);
