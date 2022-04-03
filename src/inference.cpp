@@ -118,10 +118,10 @@ void Inference::imageCallback(const sensor_msgs::ImageConstPtr &img_msg)
     ROS_INFO("%f, %f, %f, %f, %d, %d\n", bboxes[0], bboxes[1], bboxes[2], bboxes[3], color_mat.cols, color_mat.rows);
     //ROS_INFO("%f, %f, %f, depth: %f", point[0], point[1], point[2], mean_depth);
     geometry_msgs::Quaternion msg;
-    msg.x = bboxes[0];
-    msg.y = bboxes[1];
-    msg.z = bboxes[2];
-    msg.w = bboxes[3];
+    msg.x = bboxes[0]; // x of top left
+    msg.y = bboxes[1]; // y of top left
+    msg.z = color_mat.rows; // height
+    msg.w = color_mat.cols; // width
     geometry_msgs::QuaternionStamped stamped_msg;
     stamped_msg.header = std_msgs::Header();
     stamped_msg.quaternion = msg;
