@@ -1,6 +1,6 @@
 #include "inference.h"
 
-Inference::Inference() : it(n)
+Inference::Inference()
 {
     /*pipeline pipe;
     auto config = pipe.start();
@@ -37,7 +37,7 @@ Inference::Inference() : it(n)
     //pub_rel_pos = n.advertise<geometry_msgs::PointStamped>("rover/rel_pos", 5);
 }
 
-Inference::void imageCallback(const sensor_msgs::ImageConstPtr &msg)
+void Inference::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 {
     using namespace cv;
     using namespace rs2;
@@ -196,7 +196,7 @@ Inference::int resize_uniform(cv::Mat &src, cv::Mat &dst, cv::Size dst_size, obj
     return 0;
 }
 
-Inference::std::vector<float> get_bboxes(const cv::Mat &bgr, const std::vector<BoxInfo> &bboxes, object_rect effect_roi)
+std::vector<float> Inference::get_bboxes(const cv::Mat &bgr, const std::vector<BoxInfo> &bboxes, object_rect effect_roi)
 {
     cv::Mat image = bgr.clone();
 

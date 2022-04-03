@@ -36,7 +36,7 @@ class Inference
         Inference();
         NanoDet::NanoDet detector; 
         ros:nodeHandle n;
-        image_transport::ImageTransport it;
+        image_transport::ImageTransport it(n);
         image_transport::Subscriber sub_rgb;
         //image_transport::Subscriber sub_depth;
         ros::Publisher pub_bbox;
