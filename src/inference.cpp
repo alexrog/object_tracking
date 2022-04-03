@@ -1,6 +1,6 @@
 #include "inference.h"
 
-Inference::Inference() : it(n) : sub_cam_info(n, "drone/camera/color/camera_info",1, &Inference::camInfoCallback, this)
+Inference::Inference() : it(n)
 {
     /*pipeline pipe;
     auto config = pipe.start();
@@ -31,10 +31,8 @@ Inference::Inference() : it(n) : sub_cam_info(n, "drone/camera/color/camera_info
     width = detector.input_size[1];
 
     sub_rgb = it.subscribe("/drone/camera/color/image_raw", 1, &Inference::imageCallback, this);
-    sub_cam_info = 
     //sub_depth = it.subscribe("camera/depth/image_raw", 1, &Inference::imageCallback, this);
-    //pub_bbox = n.advertise<geometry_msgs::QuaternionStamped>("/drone/rover/bounding_box", 5);
-    pub_bbox = n.advertise<sensor_msgs::CameraInfo>("/drone/rover/bounding_box", 5);
+    pub_bbox = n.advertise<geometry_msgs::QuaternionStamped>("/drone/rover/bounding_box", 5);
     //pub_rel_pos = n.advertise<geometry_msgs::PointStamped>("rover/rel_pos", 5);
     old_bboxes.push_back(-1);
     old_bboxes.push_back(-1);
@@ -119,20 +117,15 @@ void Inference::imageCallback(const sensor_msgs::ImageConstPtr &img_msg)
 
     ROS_INFO("%f, %f, %f, %f, %d, %d\n", bboxes[0], bboxes[1], bboxes[2], bboxes[3], color_mat.cols, color_mat.rows);
     //ROS_INFO("%f, %f, %f, depth: %f", point[0], point[1], point[2], mean_depth);
-    sensor_msgs::CameraInfo msg = *(new sensor_msgs::CameraInfoConstPtr(*camera_info));
-    camera_info.roi.x_offset = bboxes[0];
-    camera_info.roi.y_offset = bboxes[1];
-    camera_info.roi.height = color_mat.rows;
-    camera_info.roi.width = color_mat.height;
-    /*geometry_msgs::Quaternion msg;
+    geometry_msgs::Quaternion msg;
     msg.x = bboxes[0];
     msg.y = bboxes[1];
     msg.z = bboxes[2];
     msg.w = bboxes[3];
     geometry_msgs::QuaternionStamped stamped_msg;
     stamped_msg.header = std_msgs::Header();
-    stamped_msg.quaternion = msg;*/
-    pub_bbox.publish(camera_info);
+    stamped_msg.quaternion = msg;
+    pub_bbox.publish(stamped_msg);
 
     /*geometry_msgs::Point msg_pos;
     msg_pos.x = point[0];
@@ -237,9 +230,4 @@ std::vector<float> Inference::get_bboxes(const cv::Mat &bgr, const std::vector<B
     }
 
     return boundingboxes;
-}
-
-void Inference::camInfoCallback(const sensor_msgs::CameraInfoConstPtr& cam_info)
-{
-    camera_info = cam_info;
 }
