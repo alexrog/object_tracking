@@ -40,7 +40,7 @@ class Inference
         ros::NodeHandle n;
         image_transport::ImageTransport it;
         image_transport::Subscriber sub_rgb;
-        message_filters::Subscriber<CameraInfo> sub_cam_info;
+        message_filters::Subscriber<sensor_msgs::CameraInfo> sub_cam_info;
         //image_transport::Subscriber sub_depth;
         ros::Publisher pub_bbox;
         ros::Publisher pub_rel_pos;
@@ -58,7 +58,7 @@ class Inference
         sensor_msgs::CameraInfoConstPtr& camera_info;
 
         void imageCallback(const sensor_msgs::ImageConstPtr& img_msg);
-        void camInfoCallback(const CameraInfoConstPtr& cam_info);
+        void camInfoCallback(const sensor_msgs::CameraInfoConstPtr& cam_info);
     private:
         int resize_uniform(cv::Mat &src, cv::Mat &dst, cv::Size dst_size, object_rect &effect_area);
         std::vector<float> get_bboxes(const cv::Mat &bgr, const std::vector<BoxInfo> &bboxes, object_rect effect_roi);
