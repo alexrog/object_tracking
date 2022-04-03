@@ -1,6 +1,6 @@
 #include "inference.h"
 
-Inference::Inference()
+Inference::Inference() : it(n)
 {
     /*pipeline pipe;
     auto config = pipe.start();

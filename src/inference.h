@@ -36,7 +36,7 @@ class Inference
         Inference();
         NanoDet detector; 
         ros::NodeHandle n;
-        image_transport::ImageTransport it(n);
+        image_transport::ImageTransport it;
         image_transport::Subscriber sub_rgb;
         //image_transport::Subscriber sub_depth;
         ros::Publisher pub_bbox;
@@ -57,6 +57,6 @@ class Inference
     private:
         int resize_uniform(cv::Mat &src, cv::Mat &dst, cv::Size dst_size, object_rect &effect_area);
         std::vector<float> get_bboxes(const cv::Mat &bgr, const std::vector<BoxInfo> &bboxes, object_rect effect_roi);
-}
+};
 
 #endif
