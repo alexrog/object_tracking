@@ -4,6 +4,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/QuaternionStamped.h>
+#include <geometry_msgs/Point.h>
+#include <geometry_msgs/PointStamped.h>
 #include "std_msgs/String.h"
 #include <librealsense2/rs.hpp>
 #include <librealsense2/rsutil.h>
@@ -13,7 +15,7 @@
 #include <iostream>
 #include <sstream>
 
-auto detector = NanoDet("/home/px4vision/catkin/src/object_tracking/src/nanodet.xml", "MYRIAD", 32);
+auto detector = NanoDet("/home/px4vision/catkin/src/auav_2022_sample/object_tracking/src/nanodet.xml", "MYRIAD", 32);
 
 
 struct object_rect {
@@ -232,7 +234,7 @@ int intelrealsense_inference(ros::Publisher pub_bbox, ros::Publisher pub_rel_pos
 			count = 0;
         }
 
-		//ROS_INFO("%f, %f, %f, %f, %d, %d\n", bboxes[0], bboxes[1], bboxes[2], bboxes[3], color_mat.cols, color_mat.rows);
+		i//ROS_INFO("%f, %f, %f, %f, %d, %d\n", bboxes[0], bboxes[1], bboxes[2], bboxes[3], color_mat.cols, color_mat.rows);
 		ROS_INFO("%f, %f, %f, depth: %f", point[0], point[1], point[2], mean_depth);
         geometry_msgs::Quaternion msg;
         msg.x = bboxes[0];
@@ -244,15 +246,14 @@ int intelrealsense_inference(ros::Publisher pub_bbox, ros::Publisher pub_rel_pos
         stamped_msg.quaternion = msg;
         pub_bbox.publish(stamped_msg);
 
-		geometry_msgs::Quaternion msg_pos;
+		geometry_msgs::Point msg_pos;
         msg_pos.x = point[0];
         msg_pos.y = point[1];
         msg_pos.z = point[2];
-        geometry_msgs::QuaternionStamped stamped_msg_pos;
+        geometry_msgs::PointStamped stamped_msg_pos;
         stamped_msg_pos.header = std_msgs::Header();
-        stamped_msg_pos.quaternion = msg_pos;
+        stamped_msg_pos.point = msg_pos;
         pub_rel_pos.publish(stamped_msg_pos);
-
 
 
         ros::spinOnce();
@@ -265,7 +266,7 @@ int main(int argc, char **argv) {
 	ROS_INFO("init the ros node");
     ros::NodeHandle n;
     ros::Publisher pub_bbox = n.advertise<geometry_msgs::QuaternionStamped>("rover/bounding_box",5);
-    ros::Publisher pub_rel_pos = n.advertise<geometry_msgs::QuaternionStamped>("rover/rel_pos",5);
+    ros::Publisher pub_rel_pos = n.advertise<geometry_msgs::PointStamped>("rover/rel_pos",5);
     intelrealsense_inference(pub_bbox, pub_rel_pos);
 	
 	return 0;
