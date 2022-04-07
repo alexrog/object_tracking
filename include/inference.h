@@ -21,6 +21,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <iostream>
 #include <sstream>
+#include "BYTETracker.h"
 
 struct object_rect
 {
@@ -30,11 +31,26 @@ struct object_rect
     int height;
 };
 
+struct bbox_tlbr {
+    float x1;
+    float y1;
+    float x2;
+    float y2;
+};
+
+struct xyz{
+    float x;
+    float y;
+    float z;
+};
+
 class Inference
 {
     public:
         Inference();
+        ~Inference();
         NanoDet detector; 
+        std::shared_ptr<BYTETracker> tracker;
         ros::NodeHandle n;
         image_transport::ImageTransport it;
         image_transport::Subscriber sub_rgb;
@@ -50,6 +66,16 @@ class Inference
         int height;
         int width;
         int count = 0;
+        const float conf_threshold = 0.4;
+        const float nms_threshold = 0.5;
+        const bbox_tlbr null_bbox = {.x1=-1.0, .y1=-1.0, .x2=-1.0, .y2=-1.0};
+        const xyz null_xyz = {.x = -1.0, .y=-1.0, .z=-1.0};
+        int elapsed_frames = 0; //Modified by update_bbox
+        cv::Size model_in_size;
+        bbox_tlbr old_bbox;
+        bbox_tlbr new_bbox;
+        xyz old_cords;
+        xyz new_cords;
         std::vector<float> old_bboxes;
         float old_point[3];
 
@@ -57,6 +83,8 @@ class Inference
     private:
         int resize_uniform(cv::Mat &src, cv::Mat &dst, cv::Size dst_size, object_rect &effect_area);
         std::vector<float> get_bboxes(const cv::Mat &bgr, const std::vector<BoxInfo> &bboxes, object_rect effect_roi);
+        void update_bbox_cord(vector<STrack> stracks, bbox_tlbr& old_bbox, bbox_tlbr& new_bbox, xyz& old_cords, xyz& new_cords);
+        vector<Object> convert_bytetrack(const std::vector<BoxInfo>& results, const cv::Mat& image, const object_rect effect_roi);
 };
 
 #endif

@@ -1,10 +1,11 @@
 #include "inference.h"
 
-Inference::Inference() : it(n)
+Inference::Inference() : it(n) 
 {
     detector = NanoDet("/home/px4vision/catkin/src/auav_2022_sample/object_tracking/src/nanodet.xml", "MYRIAD", 32);
     height = detector.input_size[0];
     width = detector.input_size[1];
+    tracker = std::make_shared<BYTETracker>(10, 30);
 
     sub_rgb = it.subscribe("/drone/camera/color/image_raw", 1, &Inference::imageCallback, this);
     //sub_depth = it.subscribe("camera/depth/image_raw", 1, &Inference::imageCallback, this);
@@ -18,6 +19,17 @@ Inference::Inference() : it(n)
     old_point[0] = -1;
 	old_point[1] = -1;
 	old_point[2] = -1;
+
+    model_in_size = cv::Size(width, height);
+    new_bbox = null_bbox;
+    old_bbox = null_bbox;
+    new_cords = null_xyz;
+    old_cords = null_xyz;
+    ROS_INFO("Model Constructor finished");
+}
+
+Inference::~Inference()
+{
 }
 
 void Inference::imageCallback(const sensor_msgs::ImageConstPtr &img_msg)
@@ -25,6 +37,7 @@ void Inference::imageCallback(const sensor_msgs::ImageConstPtr &img_msg)
     using namespace cv;
     using namespace rs2;
 
+    //BYTETracker tracker(10, 30);
     cv_bridge::CvImagePtr cv_ptr;
     try
     {
@@ -41,10 +54,17 @@ void Inference::imageCallback(const sensor_msgs::ImageConstPtr &img_msg)
     Mat resized_img;
     object_rect effect_roi;
     resize_uniform(color_mat, resized_img, cv::Size(width, height), effect_roi);
-    auto results = detector.detect(resized_img, 0.4, 0.5);
-    std::vector<float> bboxes = get_bboxes(color_mat, results, effect_roi);
+    auto results = detector.detect(resized_img, conf_threshold, nms_threshold);
+    //std::vector<float> bboxes = get_bboxes(color_mat, results, effect_roi);
 
-    float point[3];
+    //Track objects with bytetrack
+    vector<Object> bt_bboxes = convert_bytetrack(results, color_mat, effect_roi);
+    vector<STrack> output_stracks = tracker->update(bt_bboxes);
+    
+    //Start output logic
+    update_bbox_cord(output_stracks, old_bbox, new_bbox, old_cords, new_cords);
+
+    /*float point[3];
     float mean_depth = 0;
 
     if (bboxes.size() == 0)
@@ -71,18 +91,55 @@ void Inference::imageCallback(const sensor_msgs::ImageConstPtr &img_msg)
     {
         old_bboxes = bboxes;
         count = 0;
-    }
+    }*/
 
-    ROS_INFO("%f, %f, %f, %f, %d, %d\n", bboxes[0], bboxes[1], bboxes[2], bboxes[3], color_mat.cols, color_mat.rows);
+    ROS_INFO("%f, %f, %f, %f, %d, %d\n", new_bbox.x1, new_bbox.y1, new_bbox.x2, new_bbox.y2, color_mat.cols, color_mat.rows);
     geometry_msgs::Quaternion msg;
-    msg.x = bboxes[0]; // x of top left
-    msg.y = bboxes[1]; // y of top left
-    msg.z = bboxes[2]-bboxes[0]; // width
-    msg.w = bboxes[3]-bboxes[1]; // height
+    msg.x = new_bbox.x1; // x of top left
+    msg.y = new_bbox.y1; // y of top left
+    msg.z = new_bbox.x2-new_bbox.x1; // width
+    msg.w = new_bbox.y2-new_bbox.y1; // height
     geometry_msgs::QuaternionStamped stamped_msg;
     stamped_msg.header = std_msgs::Header();
     stamped_msg.quaternion = msg;
     pub_bbox.publish(stamped_msg);
+}
+
+void Inference::update_bbox_cord(vector<STrack> stracks, bbox_tlbr& old_bbox, bbox_tlbr& new_bbox, xyz& old_cords, xyz& new_cords)
+{
+    //Output last detection if within 30 frames, else output null_bbox and null_xyz
+    float max_conf = 0;
+    new_bbox = null_bbox;
+    new_cords = null_xyz;
+
+    //Output last detection if within 30 frames
+    if (stracks.size() == 0){
+        if(elapsed_frames > 30){
+            return;
+        }
+        ++elapsed_frames;
+        new_bbox = old_bbox;
+        new_cords = old_cords;
+        return;
+    }
+
+    //Find max conf bbox from detections
+    for (size_t i = 0; i < stracks.size(); i++)
+    {
+        if (stracks[i].score > max_conf){
+            elapsed_frames = 0;
+            max_conf = stracks[i].score;
+
+            new_bbox.x1 = stracks[i].tlbr[0];
+            new_bbox.y1 = stracks[i].tlbr[1];
+            new_bbox.x2 = stracks[i].tlbr[2];
+            new_bbox.y2 = stracks[i].tlbr[3];
+
+            old_bbox = new_bbox;
+            old_cords = new_cords;
+        }
+    }
+    return;
 }
 
 int Inference::resize_uniform(cv::Mat &src, cv::Mat &dst, cv::Size dst_size, object_rect &effect_area)
@@ -177,4 +234,28 @@ std::vector<float> Inference::get_bboxes(const cv::Mat &bgr, const std::vector<B
     }
 
     return boundingboxes;
+}
+
+vector<Object> Inference::convert_bytetrack(const std::vector<BoxInfo>& results, const cv::Mat& image, const object_rect effect_roi)
+{
+    //Converts Nanodet bbox to ByteTrack style tlwh with score and label
+    static int num_dets = results.size();
+    vector<Object> objects;
+    objects.resize(num_dets);
+
+    int src_w = image.cols;
+    int src_h = image.rows;
+    int dst_w = effect_roi.width;
+    int dst_h = effect_roi.height;
+    float width_ratio = (float)src_w / (float)dst_w;
+    float height_ratio = (float)src_h / (float)dst_h;
+    for(int i=0; i< results.size(); ++i){
+        objects[i].rect.x = (results[i].x1 - effect_roi.x) * width_ratio;
+        objects[i].rect.y = (results[i].y1 - effect_roi.y) * height_ratio;
+        objects[i].rect.width = ((results[i].x2 - effect_roi.x) * width_ratio) - ((results[i].x1 - effect_roi.x) * width_ratio);
+        objects[i].rect.height = ((results[i].y2 - effect_roi.y) * height_ratio) - ((results[i].y1 - effect_roi.y) * height_ratio);
+        objects[i].prob = results[i].score;
+        objects[i].label = results[i].label;
+    }
+    return objects;
 }

@@ -23,6 +23,10 @@ find_package(InferenceEngine REQUIRED)
 find_package(ngraph REQUIRED)
 find_package(realsense2 REQUIRED)
 
+add_definitions(-std=c++11)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Ofast -Wfatal-errors -D_MWAITXINTRIN_H_INCLUDED")
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -127,6 +131,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
+  /usr/local/include/eigen3
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
@@ -144,7 +149,8 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node src/main.cpp src/nanodet_openvino.cpp src/inference.cpp)
+file(GLOB My_Source_Files src/*.cpp)
+add_executable(${PROJECT_NAME}_node ${My_Source_Files})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -169,6 +175,7 @@ target_link_libraries(
     ${realsense2_LIBRARY}
 )
 
+add_definitions(-O2 -pthread)
 #############
 ## Install ##
 #############
