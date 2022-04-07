@@ -2,30 +2,6 @@
 
 Inference::Inference() : it(n)
 {
-    /*pipeline pipe;
-    auto config = pipe.start();
-    auto profile = config.get_stream(RS2_STREAM_COLOR)
-                       .as<video_stream_profile>();
-    rs2::align align_to(RS2_STREAM_COLOR);
-
-    Size cropSize;
-    if (profile.width() / (float)profile.height() > WHRatio)
-    {
-        cropSize = Size(static_cast<int>(profile.height() * WHRatio),
-                        profile.height());
-    }
-    else
-    {
-        cropSize = Size(profile.width(),
-                        static_cast<int>(profile.width() / WHRatio));
-    }
-
-    Rect crop(Point((profile.width() - cropSize.width) / 2,
-                    (profile.height() - cropSize.height) / 2),
-              cropSize);
-
-    intrinsics = pipe.get_active_profile().get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>().get_intrinsics();
-    pipe.stop();*/
     detector = NanoDet("/home/px4vision/catkin/src/auav_2022_sample/object_tracking/src/nanodet.xml", "MYRIAD", 32);
     height = detector.input_size[0];
     width = detector.input_size[1];
@@ -93,30 +69,11 @@ void Inference::imageCallback(const sensor_msgs::ImageConstPtr &img_msg)
     }
     else
     {
-        /*Rect object((int)(bboxes[0]), (int)(bboxes[3]),
-                    (int)(bboxes[2] - bboxes[0]),
-                    (int)(bboxes[3] - bboxes[1]));
-        object = object & Rect(0, 0, depth_mat.cols, depth_mat.rows);
-        float pixel[2];
-        pixel[0] = bboxes[0] + (bboxes[2] - bboxes[0]) / 2;
-        pixel[1] = bboxes[1] + (bboxes[3] - bboxes[1]) / 2;
-        Scalar m = mean(depth_mat(object));
-        mean_depth = (float)m[0];
-        rs2_deproject_pixel_to_point(point, &intrinsics, pixel, (float)m[0]);
-        old_point[0] = point[0];
-        old_point[1] = point[1];
-        old_point[2] = point[2];*/
-
-        /*bboxes[0] /= color_mat.cols;
-        bboxes[1] /= color_mat.rows;
-        bboxes[2] /= color_mat.cols;
-        bboxes[3] /= color_mat.rows;*/
         old_bboxes = bboxes;
         count = 0;
     }
 
     ROS_INFO("%f, %f, %f, %f, %d, %d\n", bboxes[0], bboxes[1], bboxes[2], bboxes[3], color_mat.cols, color_mat.rows);
-    //ROS_INFO("%f, %f, %f, depth: %f", point[0], point[1], point[2], mean_depth);
     geometry_msgs::Quaternion msg;
     msg.x = bboxes[0]; // x of top left
     msg.y = bboxes[1]; // y of top left
@@ -126,16 +83,6 @@ void Inference::imageCallback(const sensor_msgs::ImageConstPtr &img_msg)
     stamped_msg.header = std_msgs::Header();
     stamped_msg.quaternion = msg;
     pub_bbox.publish(stamped_msg);
-
-    /*geometry_msgs::Point msg_pos;
-    msg_pos.x = point[0];
-    msg_pos.y = point[1];
-    msg_pos.z = point[2];
-    geometry_msgs::PointStamped stamped_msg_pos;
-    stamped_msg_pos.header = std_msgs::Header();
-    stamped_msg_pos.point = msg_pos;
-    pub_rel_pos.publish(stamped_msg_pos);*/
-
 }
 
 int Inference::resize_uniform(cv::Mat &src, cv::Mat &dst, cv::Size dst_size, object_rect &effect_area)
