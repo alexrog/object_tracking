@@ -1,8 +1,10 @@
 #include "inference.h"
+#include <ros/package.h>
 
 Inference::Inference() : it(n)
 {
-    detector = NanoDet("/home/px4vision/catkin/src/auav_2022_sample/object_tracking/src/nanodet.xml", "MYRIAD", 32);
+	std::string path = ros::package::getPath("object_tracking");
+    detector = NanoDet((path + "/src/nanodet.xml").c_str(), "MYRIAD", 32);
     height = detector.input_size[0];
     width = detector.input_size[1];
 
