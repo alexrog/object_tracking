@@ -1,4 +1,5 @@
 #include "inference.h"
+#include <ros/package.h>
 
 Inference::Inference() : it(n)
 {
@@ -26,7 +27,8 @@ Inference::Inference() : it(n)
 
     intrinsics = pipe.get_active_profile().get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>().get_intrinsics();
     pipe.stop();*/
-    detector = NanoDet("/home/px4vision/catkin/src/auav_2022_sample/object_tracking/src/nanodet.xml", "MYRIAD", 32);
+	std::string path = ros::package::getPath("object_tracking");
+    detector = NanoDet((path + "/src/nanodet.xml").c_str(), "MYRIAD", 32);
     height = detector.input_size[0];
     width = detector.input_size[1];
 
